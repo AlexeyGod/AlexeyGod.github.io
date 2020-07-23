@@ -1,0 +1,18 @@
+Алиасы
+
+Алиасы служат для упрощенного указания пути расположения файлов.
+Все имена алиасов должны начинаться с "@".
+
+По умолчанию система содержит предустановленные алиасы*:
+[CODE]
+'@domain' => getenv('HTTP_HOST'),
+'@webroot' => getenv('DOCUMENT_ROOT'),
+'@root' => getenv('DOCUMENT_ROOT'),
+'@web' => '/',
+'@application' => getenv('DOCUMENT_ROOT').'/application',
+'@themes' => getenv('DOCUMENT_ROOT').'/themes',
+'@uploadPath' => '/uploads', // Указывается относительно ROOT
+[/CODE]
+
+* - все алиасы по-умолчанию вы можете изменить в конфигурации
+
