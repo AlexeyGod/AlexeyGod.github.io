@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Буквопад</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FF);
+            overflow: hidden;
+        }
+
+        .letter {
+            position: absolute;
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            line-height: 50px;
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: default;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+
+        .letter:hover {
+            transform: scale(1.1);
+        }
+
+        .letter.active {
+            background-color: #ffeb3b;
+        }
+
+        .letter.correct {
+            background-color: #4CAF50;
+            color: white;
+            transform: scale(1.2);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .letter.missed {
+            background-color: #f44336;
+            color: white;
+            transform: scale(0.8) rotate(10deg);
+            opacity: 0;
+            transition: all 0.5s;
+        }
+
+        #score-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+
+        #instructions {
+            margin: 20px 0;
+            color: #555;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .setting-group {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .setting-group h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* Сетка букв */
+        .letters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .letter-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 8px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #dee2e6;
+            text-align: center;
+        }
+
+        .letter-option:hover {
+            background: #e9ecef;
+            border-color: #4CAF50;
+        }
+
+        .letter-option input {
+            margin-bottom: 8px;
+            transform: scale(1.4);
+            cursor: pointer;
+        }
+
+        .letter-option span {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Контролы скорости */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .checkbox-label input {
+            margin-right: 12px;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+
+        #speed-controls {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        #speed-controls label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        #base-speed {
+            width: 250px;
+            margin: 0 15px;
+            cursor: pointer;
+        }
+
+        #speed-value {
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 18px;
+            min-width: 30px;
+            display: inline-block;
+        }
+
+        /* Кнопки */
+        .buttons-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .buttons-row button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+        }
+
+        #settings-button, #settings-button-main, #settings-button-end {
+            background: #6c757d;
+        }
+
+        #settings-button:hover, #settings-button-main:hover, #settings-button-end:hover {
+            background: #5a6268;
+        }
+
+        /* Стили для скролла */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score-container">
+            Счёт: <span id="score">0</span> | 
+            Пропущено: <span id="missed">0</span>/10
+            <button id="settings-button" style="margin-left: 20px;">⚙️ Настройки</button>
+        </div>
+        
+        <div id="start-screen">
+            <h1>Буквопад</h1>
+            <div id="instructions">
+                <p>Нажимайте соответствующие буквы на клавиатуре, когда они падают</p>
+                <p>Если пропустите 10 букв - игра закончится!</p>
+            </div>
+            <button id="start-button">Начать игру</button>
+            <button id="settings-button-main">⚙️ Настройки</button>
+        </div>
+        
+        <div id="game-over">
+            <h1>Игра окончена!</h1>
+            <p>Ваш счёт: <span id="final-score">0</span></p>
+            <button id="restart-button">Играть снова</button>
+            <button id="settings-button-end">⚙️ Настройки</button>
+        </div>
+
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <h2>⚙️ Настройки игры</h2>
+                
+                <div class="setting-group">
+                    <h3>Активные буквы:</h3>
+                    <div id="letters-checkboxes" class="letters-grid"></div>
+                    <div class="buttons-row">
+                        <button id="select-all-letters">Выбрать все</button>
+                        <button id="deselect-all-letters">Снять все</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <h3>Скорость игры:</h3>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="speed-increase-enabled" checked>
+                        Увеличивать скорость при наборе очков
+                    </label>
+                    
+                    <div id="speed-controls">
+                        <label for="base-speed">Базовая скорость:</label>
+                        <input type="range" id="base-speed" min="1" max="10" value="3" step="0.5">
+                        <span id="speed-value">3</span>
+                    </div>
+                </div>
+                
+                <div class="buttons-row">
+                    <button id="save-settings">Сохранить</button>
+                    <button id="close-settings">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Русский алфавит
+        const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ';
+
+        // Элементы DOM
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const missedElement = document.getElementById('missed');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreElement = document.getElementById('final-score');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const settingsButton = document.getElementById('settings-button');
+        const settingsButtonMain = document.getElementById('settings-button-main');
+        const settingsButtonEnd = document.getElementById('settings-button-end');
+
+        // Настройки по умолчанию
+        let settings = {
+            activeLetters: [...alphabet],
+            speedIncreaseEnabled: true,
+            baseSpeed: 3
+        };
+
+        // Игровые переменные
+        let score = 0;
+        let missed = 0;
+        let gameActive = false;
+        let currentSpeed = settings.baseSpeed;
+        let letterInterval;
+        let gameLoop;
+        let letters = [];
+
+        // Карта клавиш (для русской раскладки)
+        // Теперь используем непосредственно буквы вместо кодов клавиш
+        // Это упрощает логику и делает игру более универсальной
+
+        // Инициализация настроек
+        function initSettings() {
+            const modal = document.getElementById('settings-modal');
+            const lettersContainer = document.getElementById('letters-checkboxes');
+            const speedIncreaseCheckbox = document.getElementById('speed-increase-enabled');
+            const baseSpeedSlider = document.getElementById('base-speed');
+            const speedValue = document.getElementById('speed-value');
+            const saveButton = document.getElementById('save-settings');
+            const closeButton = document.getElementById('close-settings');
+            const selectAllButton = document.getElementById('select-all-letters');
+            const deselectAllButton = document.getElementById('deselect-all-letters');
+
+            // Заполняем чекбоксы букв
+            function updateLettersCheckboxes() {
+                lettersContainer.innerHTML = '';
+                alphabet.split('').forEach(letter => {
+                    const div = document.createElement('div');
+                    div.className = 'letter-option';
+                    div.innerHTML = `
+                        <input type="checkbox" value="${letter}" ${settings.activeLetters.includes(letter) ? 'checked' : ''}>
+                        <span>${letter}</span>
+                    `;
+                    lettersContainer.appendChild(div);
+                });
+            }
+
+            updateLettersCheckboxes();
+
+            // Настройки скорости
+            speedIncreaseCheckbox.checked = settings.speedIncreaseEnabled;
+            baseSpeedSlider.value = settings.baseSpeed;
+            speedValue.textContent = settings.baseSpeed;
+
+            baseSpeedSlider.addEventListener('input', function() {
+                speedValue.textContent = this.value;
+            });
+
+            // Кнопки выбора всех/ни одной
+            selectAllButton.addEventListener('click', function() {
+                document.querySelectorAll('#letters-checkboxes input').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            });
+
+            deselectAllButton.addEventListener('click', function() {
+                document.querySelectorAll('#letters-checkboxes input').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            });
+
+            // Сохранение настроек
+            saveButton.addEventListener('click', function() {
+                const activeLetters = [];
+                document.querySelectorAll('#letters-checkboxes input:checked').forEach(checkbox => {
+                    activeLetters.push(checkbox.value);
+                });
+
+                if (activeLetters.length === 0) {
+                    alert('Выберите хотя бы одну букву!');
+                    return;
+                }
+
+                settings.activeLetters = activeLetters;
+                settings.speedIncreaseEnabled = speedIncreaseCheckbox.checked;
+                settings.baseSpeed = parseFloat(baseSpeedSlider.value);
+
+                modal.style.display = 'none';
+                console.log('Настройки сохранены:', settings);
+            });
+
+            closeButton.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+
+            // Открытие модального окна
+            function openSettings() {
+                updateLettersCheckboxes();
+                speedIncreaseCheckbox.checked = settings.speedIncreaseEnabled;
+                baseSpeedSlider.value = settings.baseSpeed;
+                speedValue.textContent = settings.baseSpeed;
+                modal.style.display = 'block';
+            }
+
+            settingsButton.addEventListener('click', openSettings);
+            settingsButtonMain.addEventListener('click', openSettings);
+            settingsButtonEnd.addEventListener('click', openSettings);
+
+            // Закрытие по клику вне модального окна
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Обработка кликов по опциям букв
+            lettersContainer.addEventListener('click', function(e) {
+                if (e.target.tagName === 'SPAN') {
+                    const checkbox = e.target.previousElementSibling;
+                    if (checkbox && checkbox.type === 'checkbox') {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                }
+            });
+        }
+
+        // Обработчик нажатия клавиш
+        document.addEventListener('keydown', function(e) {
+            if (!gameActive) return;
+            
+            const pressedChar = e.key.toUpperCase();
+            
+            // Проверяем только буквы русского алфавита
+            if (!alphabet.includes(pressedChar)) return;
+            
+            const activeLetter = letters.find(letter => 
+                letter.active && letter.char === pressedChar
+            );
+            
+            if (activeLetter) {
+                handleCorrectKey(activeLetter);
+            }
+        });
+
+        function handleCorrectKey(letterObj) {
+            letterObj.active = false;
+            letterObj.element.classList.remove('active');
+            letterObj.element.classList.add('correct');
+            
+            score++;
+            scoreElement.textContent = score;
+            
+            if (settings.speedIncreaseEnabled && score % 5 === 0) {
+                currentSpeed += 0.3;
+            }
+            
+            setTimeout(() => {
+                if (letterObj.element && letterObj.element.parentNode) {
+                    letterObj.element.remove();
+                }
+                letters = letters.filter(l => l !== letterObj);
+            }, 300);
+        }
+
+        // Начало игры
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        function startGame() {
+            score = 0;
+            missed = 0;
+            currentSpeed = settings.baseSpeed;
+            scoreElement.textContent = score;
+            missedElement.textContent = missed;
+            
+            letters.forEach(letter => {
+                if (letter.element && letter.element.parentNode) {
+                    letter.element.remove();
+                }
+            });
+            letters = [];
+            
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            
+            gameActive = true;
+            
+            clearInterval(letterInterval);
+            letterInterval = setInterval(createLetter, 1000);
+            
+            cancelAnimationFrame(gameLoop);
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+
+        // Создание новой падающей буквы
+        function createLetter() {
+            if (!gameActive || settings.activeLetters.length === 0) return;
+            
+            const letterChar = settings.activeLetters[Math.floor(Math.random() * settings.activeLetters.length)];
+            
+            const letter = document.createElement('div');
+            letter.className = 'letter active';
+            letter.textContent = letterChar;
+            
+            const maxLeft = gameContainer.offsetWidth - 50;
+            const left = Math.max(0, Math.floor(Math.random() * maxLeft));
+            letter.style.left = left + 'px';
+            letter.style.top = '-50px';
+            
+            gameContainer.appendChild(letter);
+            
+            const letterObj = {
+                element: letter,
+                char: letterChar,
+                y: -50,
+                speed: currentSpeed + Math.random(),
+                active: true
+            };
+            
+            letters.push(letterObj);
+        }
+
+        // Игровой цикл
+        function updateGame() {
+            if (!gameActive) return;
+            
+            const containerHeight = gameContainer.offsetHeight;
+            
+            for (let i = letters.length - 1; i >= 0; i--) {
+                const letterObj = letters[i];
+                
+                if (letterObj.active && letterObj.element) {
+                    letterObj.y += letterObj.speed;
+                    letterObj.element.style.top = letterObj.y + 'px';
+                    
+                    if (letterObj.y > containerHeight) {
+                        letterObj.active = false;
+                        letterObj.element.classList.remove('active');
+                        letterObj.element.classList.add('missed');
+                        
+                        missed++;
+                        missedElement.textContent = missed;
+                        
+                        setTimeout(() => {
+                            if (letterObj.element && letterObj.element.parentNode) {
+                                letterObj.element.remove();
+                            }
+                        }, 500);
+                        
+                        if (missed >= 10) {
+                            endGame();
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            gameLoop = requestAnimationFrame(updateGame);
+        }
+
+        // Завершение игры
+        function endGame() {
+            gameActive = false;
+            clearInterval(letterInterval);
+            cancelAnimationFrame(gameLoop);
+            
+            finalScoreElement.textContent = score;
+            gameOverScreen.style.display = 'block';
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('load', function() {
+            initSettings();
+            console.log('🎮 Игра "Буквопад" загружена!');
+        });
+    </script>
+</body>
+</html>
+
